@@ -1,2 +1,3 @@
-hello
-this ia a read me file!!!
+# Read me
+
+This repo is about my learning.
