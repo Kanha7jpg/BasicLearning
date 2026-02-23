@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CONNECT FOUR</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Orbitron:wght@400;700;900&display=swap');
+
+    :root {
+      --bg: #0a0a0f;
+      --board: #1a0a3e;
+      --board-border: #3d1a8a;
+      --p1: #ff2d55;
+      --p1-glow: #ff2d5580;
+      --p2: #ffd60a;
+      --p2-glow: #ffd60a80;
+      --empty: #0d0d1a;
+      --empty-border: #2a1060;
+      --accent: #00d4ff;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Orbitron', monospace;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, #1a0a3e55 0%, transparent 70%),
+        repeating-linear-gradient(0deg, transparent, transparent 39px, #ffffff04 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, #ffffff04 40px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .everything {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      max-height: 98vh;
+      justify-content: center;
+    }
+
+    h1 {
+      font-family: 'Black Ops One', cursive;
+      font-size: clamp(1.5rem, 4vw, 2.5rem);
+      letter-spacing: 0.1em;
+      background: linear-gradient(135deg, var(--p1) 0%, var(--accent) 50%, var(--p2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: none;
+      filter: drop-shadow(0 0 15px #ff2d5566);
+      animation: titlePulse 3s ease-in-out infinite;
+      margin-bottom: 5px;
+    }
+
+    @keyframes titlePulse {
+
+      0%,
+      100% {
+        filter: drop-shadow(0 0 20px #ff2d5566) drop-shadow(0 0 40px #00d4ff44);
+      }
+
+      50% {
+        filter: drop-shadow(0 0 30px #ff2d55aa) drop-shadow(0 0 60px #00d4ff88);
+      }
+    }
+
+    .scoreboard {
+      display: flex;
+      gap: 30px;
+      align-items: center;
+    }
+
+    .player-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: #ffffff66;
+    }
+
+    .player-name {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+    }
+
+    .p1-color {
+      color: var(--p1);
+      text-shadow: 0 0 10px var(--p1-glow);
+    }
+
+    .p2-color {
+      color: var(--p2);
+      text-shadow: 0 0 10px var(--p2-glow);
+    }
+
+    .score-val {
+      font-size: 1.5rem;
+      font-weight: 900;
+    }
+
+    .vs {
+      font-size: 0.8rem;
+      color: #ffffff33;
+      letter-spacing: 0.2em;
+    }
+
+    .status-bar {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      height: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+      color: var(--accent);
+      text-shadow: 0 0 10px #00d4ff88;
+    }
+
+    .player-score {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      min-width: 100px;
+      padding: 6px;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      background: transparent;
+      border: 1px solid transparent;
+    }
+
+    .player-score.active {
+      background: #ffffff05;
+      border-color: #ffffff11;
+      box-shadow: 0 0 15px #00000044;
+      transform: translateY(-2px);
+    }
+
+    .player-score.active.p1-turn {
+      border-color: var(--p1-glow);
+      box-shadow: 0 0 15px var(--p1-glow);
+    }
+
+    .player-score.active.p2-turn {
+      border-color: var(--p2-glow);
+      box-shadow: 0 0 15px var(--p2-glow);
+    }
+
+    .board-wrap {
+      position: relative;
+      padding: 8px;
+      background: var(--board);
+      border: 2px solid var(--board-border);
+      border-radius: 16px;
+      box-shadow:
+        0 0 0 1px #ffffff11,
+        0 0 40px #3d1a8a88,
+        0 0 80px #1a0a3e,
+        inset 0 1px 0 #ffffff18;
+    }
+
+    .drop-zone {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      padding: 8px 8px 4px;
+      cursor: pointer;
+    }
+
+    .drop-indicator {
+      width: 100%;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.15s;
+      opacity: 0;
+    }
+
+    .drop-indicator::after {
+      content: '▼';
+      font-size: 12px;
+    }
+
+    .drop-indicator.visible {
+      opacity: 1;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      grid-template-rows: repeat(6, 1fr);
+      gap: 6px;
+      padding: 6px;
+    }
+
+    .cell {
+      width: clamp(42px, 8.2vh, 58px);
+      height: clamp(42px, 8.2vh, 58px);
+      border-radius: 50%;
+      background: var(--empty);
+      border: 2px solid var(--empty-border);
+      box-shadow: inset 0 2px 8px #00000066, inset 0 -1px 2px #ffffff08;
+      transition: all 0.1s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cell::before {
+      content: '';
+      position: absolute;
+      top: 6px;
+      left: 10px;
+      width: 12px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ffffff15;
+    }
+
+    .cell.p1 {
+      background: var(--p1);
+      border-color: #ff6b85;
+      box-shadow: 0 0 12px var(--p1-glow), 0 0 24px var(--p1-glow), inset 0 2px 4px #ffffff44, inset 0 -2px 4px #00000044;
+      animation: dropIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .cell.p2 {
+      background: var(--p2);
+      border-color: #ffe55a;
+      box-shadow: 0 0 12px var(--p2-glow), 0 0 24px var(--p2-glow), inset 0 2px 4px #ffffff44, inset 0 -2px 4px #00000044;
+      animation: dropIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .cell.win {
+      animation: winPulse 0.6s ease-in-out infinite alternate;
+    }
+
+    @keyframes dropIn {
+      from {
+        transform: scaleY(0) scaleX(0.8);
+        opacity: 0;
+      }
+
+      to {
+        transform: scaleY(1) scaleX(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes winPulse {
+      from {
+        transform: scale(1);
+      }
+
+      to {
+        transform: scale(1.15);
+      }
+    }
+
+    .col-hover {
+      cursor: pointer;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .next-round-btn {
+      background: linear-gradient(135deg, var(--p1) 0%, var(--p2) 100%);
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      font-size: 0.9rem;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      display: none;
+    }
+
+    .next-round-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      border-color: transparent;
+      color: white;
+    }
+
+    button {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      padding: 10px 24px;
+      border: 1px solid #ffffff22;
+      border-radius: 6px;
+      background: #ffffff08;
+      color: #ffffffaa;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: #ffffff18;
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 12px #00d4ff44;
+    }
+
+    .col-group {
+      display: contents;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="everything">
+    <h1>CONNECT FOUR</h1>
+
+    <div class="scoreboard">
+      <div class="player-score" id="p1-card">
+        <span class="player-label">PLAYER 1</span>
+        <span class="player-name p1-color">RED</span>
+        <span class="score-val p1-color" id="score1">0</span>
+      </div>
+      <span class="vs">VS</span>
+      <div class="player-score" id="p2-card">
+        <span class="player-label">PLAYER 2</span>
+        <span class="player-name p2-color">YELLOW</span>
+        <span class="score-val p2-color" id="score2">0</span>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button id="nextRoundBtn" class="next-round-btn" onclick="nextRound()">NEXT ROUND</button>
+      <button onclick="resetGame()">NEW GAME</button>
+      <button onclick="resetScores()">RESET SCORES</button>
+    </div>
+
+    <div class="status-bar" id="status"></div>
+
+    <div class="board-wrap">
+      <div class="drop-zone" id="dropZone"></div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+
+  <script>
+    const ROWS = 6, COLS = 7;
+    let board, currentPlayer, gameOver, scores = [0, 0];
+
+    function initBoard() {
+      board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+      currentPlayer = 1;
+      gameOver = false;
+      document.getElementById('nextRoundBtn').style.display = 'none';
+      renderBoard();
+      updateStatus();
+    }
+
+    function renderBoard() {
+      const grid = document.getElementById('grid');
+      const dropZone = document.getElementById('dropZone');
+      grid.innerHTML = '';
+      dropZone.innerHTML = '';
+
+      for (let c = 0; c < COLS; c++) {
+        const ind = document.createElement('div');
+        ind.className = 'drop-indicator';
+        ind.dataset.col = c;
+        ind.style.color = currentPlayer === 1 ? 'var(--p1)' : 'var(--p2)';
+        dropZone.appendChild(ind);
+      }
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell' + (board[r][c] === 1 ? ' p1' : board[r][c] === 2 ? ' p2' : '');
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          grid.appendChild(cell);
+        }
+      }
+
+      // Click & hover on columns
+      dropZone.addEventListener('click', e => {
+        const col = e.target.dataset.col;
+        if (col !== undefined) drop(parseInt(col));
+      });
+
+      grid.addEventListener('click', e => {
+        let el = e.target;
+        if (!el.dataset.col) el = el.closest('[data-col]');
+        if (el && el.dataset.col !== undefined) drop(parseInt(el.dataset.col));
+      });
+
+      const allEls = [dropZone, grid];
+      allEls.forEach(el => {
+        el.addEventListener('mouseover', e => {
+          let t = e.target;
+          if (!t.dataset.col && t !== el) t = t.closest('[data-col]');
+          if (!t || t.dataset.col === undefined) return;
+          const col = t.dataset.col;
+          document.querySelectorAll('.drop-indicator').forEach(d => {
+            d.classList.toggle('visible', d.dataset.col === col);
+          });
+        });
+        el.addEventListener('mouseleave', () => {
+          document.querySelectorAll('.drop-indicator').forEach(d => d.classList.remove('visible'));
+        });
+      });
+    }
+
+    function drop(col) {
+      if (gameOver) return;
+      let row = -1;
+      for (let r = ROWS - 1; r >= 0; r--) {
+        if (board[r][col] === 0) { row = r; break; }
+      }
+      if (row === -1) return;
+
+      board[row][col] = currentPlayer;
+
+      const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+      if (cell) {
+        cell.classList.add(currentPlayer === 1 ? 'p1' : 'p2');
+      }
+
+      const winCells = checkWin(row, col);
+      if (winCells) {
+        gameOver = true;
+        scores[currentPlayer - 1]++;
+        document.getElementById(`score${currentPlayer}`).textContent = scores[currentPlayer - 1];
+        winCells.forEach(([r, c]) => {
+          const el = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+          if (el) el.classList.add('win');
+        });
+        const name = currentPlayer === 1 ? 'RED' : 'YELLOW';
+        const status = document.getElementById('status');
+        status.textContent = `PLAYER ${currentPlayer} — ${name} WINS! 🏆`;
+        status.style.color = currentPlayer === 1 ? 'var(--p1)' : 'var(--p2)';
+        document.getElementById('nextRoundBtn').style.display = 'block';
+        return;
+      }
+
+      if (board[0].every((_, c) => board[0][c] !== 0)) {
+        gameOver = true;
+        document.getElementById('status').textContent = "IT'S A DRAW!";
+        document.getElementById('nextRoundBtn').style.display = 'block';
+        return;
+      }
+
+      currentPlayer = currentPlayer === 1 ? 2 : 1;
+      updateStatus();
+      // Update drop indicator colors
+      document.querySelectorAll('.drop-indicator').forEach(d => {
+        d.style.color = currentPlayer === 1 ? 'var(--p1)' : 'var(--p2)';
+      });
+    }
+
+    function checkWin(row, col) {
+      const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+      const p = currentPlayer;
+      for (const [dr, dc] of dirs) {
+        const cells = [[row, col]];
+        for (let d = 1; d <= 3; d++) {
+          const r = row + dr * d, c = col + dc * d;
+          if (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === p) cells.push([r, c]); else break;
+        }
+        for (let d = 1; d <= 3; d++) {
+          const r = row - dr * d, c = col - dc * d;
+          if (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === p) cells.push([r, c]); else break;
+        }
+        if (cells.length >= 4) return cells;
+      }
+      return null;
+    }
+
+    function updateStatus() {
+      const status = document.getElementById('status');
+      const p1Card = document.getElementById('p1-card');
+      const p2Card = document.getElementById('p2-card');
+
+      p1Card.classList.toggle('active', currentPlayer === 1);
+      p1Card.classList.toggle('p1-turn', currentPlayer === 1);
+      p2Card.classList.toggle('active', currentPlayer === 2);
+      p2Card.classList.toggle('p2-turn', currentPlayer === 2);
+
+      if (!gameOver) {
+        status.textContent = '';
+      }
+    }
+
+    function nextRound() {
+      initBoard();
+    }
+
+    function resetGame() {
+      initBoard();
+    }
+
+    function resetScores() {
+      scores = [0, 0];
+      document.getElementById('score1').textContent = '0';
+      document.getElementById('score2').textContent = '0';
+      initBoard();
+    }
+
+    initBoard();
+  </script>
+</body>
+
+</html>
