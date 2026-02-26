@@ -38,4 +38,4 @@ Simply open the game in your browser and start playing — no installation requi
 
 ---
 
-*Enjoy the game!* 🏆
+*Enjoy the game! May the best strategist win.* 🏆
