@@ -1,38 +1,32 @@
-Object Detector (Webcam)
+# Object Detector (Webcam)
 
-This folder contains a simple webcam object detector using TensorFlow Hub and OpenCV.
+This project looks at your webcam and finds objects like person, bottle, car, and more.
 
-Files:
-- object_detector.py : main detection script
-- requirements.txt : Python dependencies
+## Files
 
-Quick start:
+- `object_detector.py` - main program
+- `requirements.txt` - needed packages
 
-1. Create and activate a virtual environment (recommended):
+## Setup
 
-```bash
-python -m venv .venv
-# Windows PowerShell
-.venv\Scripts\Activate.ps1
-# or cmd
-.venv\Scripts\activate.bat
-```
-
-2. Install dependencies:
+In this folder, run:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Run the detector:
+## How to run
 
 ```bash
 python object_detector.py --camera 0 --threshold 0.35
 ```
 
-Press `q` to quit the window.
+## Controls
 
-Notes:
-- The script loads a TF-Hub SSD MobileNet model by default. The first run will download the model and may take time.
-- If you need a different model, pass `--model <TFHUB_HANDLE>`.
-- For better performance on constrained machines, consider an optimized or TFLite model.
+- `q` - quit window
+
+## Notes
+
+- First run may be slow because model download happens once.
+- Lower threshold shows more boxes.
+- Higher threshold shows fewer, more confident boxes.

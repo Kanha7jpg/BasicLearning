@@ -1,45 +1,38 @@
 # Snake Game
 
-A classic Snake game built with Python's `turtle` graphics library.
+This is a simple snake game made with Python `turtle`.
 
-## Requirements
+## What you do
 
-- Python 3.x (no external libraries needed — `turtle` is included in the standard library)
+- Move the snake
+- Eat food
+- Grow longer
+- Try to get a high score
 
-## How to Run
+## How to run
+
+1. Open terminal in this folder.
+2. Run:
 
 ```bash
 python snake.py
 ```
 
-## How to Play
+## Controls
 
-When the game launches, you'll see the main menu. Select a difficulty to start:
+- `W` or `Up Arrow` - move up
+- `S` or `Down Arrow` - move down
+- `A` or `Left Arrow` - move left
+- `D` or `Right Arrow` - move right
 
-| Key | Difficulty | Speed |
-|-----|-----------|-------|
-| `1` | Easy | Slow |
-| `2` | Medium | Normal |
-| `3` | Hard | Fast |
+## Difficulty keys
 
-**Move the snake** using the arrow keys or WASD:
-
-- `W` / `↑` — Move Up
-- `S` / `↓` — Move Down
-- `A` / `←` — Move Left
-- `D` / `→` — Move Right
-
-**Goal:** Eat the red food to grow your snake and increase your score. Each food item is worth **10 points**.
+- `1` - easy
+- `2` - medium
+- `3` - hard
 
 ## Rules
 
-- Don't hit the walls — the game ends if the snake goes out of bounds.
-- Don't run into yourself — colliding with your own body ends the game.
-- After a game over, the game returns to the menu automatically. Your high score is tracked for the session.
-
-## Features
-
-- Three difficulty levels
-- Score and high score display
-- Menu screen between rounds
-- Grows in length with each food eaten
+- Do not hit the wall.
+- Do not hit your own body.
+- Eat red food to get points.

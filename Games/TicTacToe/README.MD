@@ -1,21 +1,32 @@
-# Tic-Tac-Toe 🎮
+# TicTacToe (Java)
 
-A simple two-player command-line Tic-Tac-Toe game written in Java for beginners.
+This is a 2-player TicTacToe game in Java.
 
-## How to Run
+## How to run
+
+1. Open terminal in this folder.
+2. Compile the code:
 
 ```bash
 javac TicTacToe.java
+```
+
+3. Start the game:
+
+```bash
 java TicTacToe
 ```
 
-## How to Play
+## How to play
 
-- Two players take turns as `X` and `O`
-- Enter a number (1–9) to place your mark on the board
-- First to get 3 in a row wins — or it's a draw!
+- Player 1 uses `X`
+- Player 2 uses `O`
+- Type a number from `1` to `9` to place your mark
+- First player with 3 in a row wins
 
-```
+Board map:
+
+```text
  1 | 2 | 3
 ---+---+---
  4 | 5 | 6
@@ -23,6 +34,6 @@ java TicTacToe
  7 | 8 | 9
 ```
 
-## Requirements
+## Requirement
 
-- Java JDK 8 or higher
+- Java JDK 8 or newer
