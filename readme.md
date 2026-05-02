@@ -1,7 +1,6 @@
 # Read me
 
 This is my learning playground.
-I practice coding in Python, Java, games, and machine learning.
 
 ## What is inside
 
