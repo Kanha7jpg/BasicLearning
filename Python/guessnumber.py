@@ -1,5 +1,5 @@
 # ============================================
-#   🎲 Number Guessing Game - Python Learning
+#   Number Guessing Game - Python Learning
 # ============================================
 # Concepts covered:
 #   ✅ Random module     ✅ While loops
@@ -11,10 +11,10 @@ import random
 
 def get_difficulty():
     """Let the player choose a difficulty level"""
-    print("\n🎯 Choose your difficulty:")
-    print("  1. 🟢 Easy   - Guess 1 to 10   (10 attempts)")
-    print("  2. 🟡 Medium - Guess 1 to 50   (7 attempts)")
-    print("  3. 🔴 Hard   - Guess 1 to 100  (5 attempts)")
+    print("\n Choose your difficulty:")
+    print("  1. Guess 1 to 10   (10 attempts)")
+    print("  2. Guess 1 to 50   (7 attempts)")
+    print("  3. Guess 1 to 100  (5 attempts)")
 
     levels = {
         "1": ("Easy",   10,  10),
@@ -23,10 +23,10 @@ def get_difficulty():
     }
 
     while True:
-        choice = input("\n👉 Enter 1, 2, or 3: ").strip()
+        choice = input("\n👉 Enter a number : ").strip() 
         if choice in levels:
             return levels[choice]
-        print("⚠️  Invalid choice! Please enter 1, 2, or 3.")
+        print("Invalid choice! Please enter numbers :")   #
 
 
 def get_guess(low, high):
@@ -48,17 +48,17 @@ def give_hint(guess, secret, attempts_left):
     if diff == 0:
         return ""
     elif diff <= 2:
-        warmth = "🔥 SUPER HOT!"
+        warmth = "SUPER HOT!"
     elif diff <= 5:
-        warmth = "♨️  Very warm!"
+        warmth = "Very warm!"
     elif diff <= 10:
-        warmth = "🌤  Getting warm..."
+        warmth = "Getting warm..."
     elif diff <= 20:
-        warmth = "❄️  Cold..."
+        warmth = "Cold..."
     else:
-        warmth = "🧊 Freezing!"
+        warmth = "Freezing!"
 
-    direction = "⬆️  Go HIGHER!" if guess < secret else "⬇️  Go LOWER!"
+    direction = "Go HIGHER!" if guess < secret else "Go LOWER!"
     return f"  {direction}  {warmth}  (Attempts left: {attempts_left})"
 
 
@@ -69,7 +69,7 @@ def play_game(scores):
     attempts = 0
 
     print(f"\n{'='*45}")
-    print(f"  🎲 {level_name} Mode! Guess a number between 1 and {max_number}")
+    print(f" {level_name} Mode! Guess a number between 1 and {max_number}")
     print(f"  You have {max_attempts} attempts. Good luck! 🍀")
     print(f"{'='*45}")
 
@@ -80,16 +80,16 @@ def play_game(scores):
 
         if guess == secret:
             score = round((max_attempts - attempts + 1) / max_attempts * 100)
-            print(f"\n🎉 CORRECT! The number was {secret}!")
-            print(f"🏆 You got it in {attempts} attempt(s)!")
-            print(f"⭐ Score: {score} points")
+            print(f"\n CORRECT! The number was {secret}!")
+            print(f"You got it in {attempts} attempt(s)!")
+            print(f"Score: {score} points")
             scores.append(score)
             return True
         else:
             hint = give_hint(guess, secret, attempts_left - 1)
             print(hint)
 
-    print(f"\n😢 Out of attempts! The secret number was {secret}.")
+    print(f"\nOut of attempts! The secret number was {secret}.")
     scores.append(0)
     return False
 
@@ -97,29 +97,29 @@ def play_game(scores):
 def show_scoreboard(scores):
     """Display the player's score history"""
     if not scores:
-        print("\n📋 No games played yet.")
+        print("\nNo games played yet.")
         return
-    print("\n📊 --- SCOREBOARD ---")
+    print("\n--- SCOREBOARD ---")
     for i, s in enumerate(scores, 1):
-        bar = "⭐" * (s // 10)
+        bar = " " * (s // 10)
         print(f"  Game {i}: {s:>3} pts  {bar}")
-    print(f"  🏅 Best score : {max(scores)} pts")
-    print(f"  📈 Average    : {sum(scores) // len(scores)} pts")
+    print(f" Best score : {max(scores)} pts")
+    print(f" Average    : {sum(scores) // len(scores)} pts")
 
 
 def main():
     print("\n" + "="*45)
-    print("   🎲  WELCOME TO THE NUMBER GUESSING GAME")
+    print("   WELCOME TO THE NUMBER GUESSING GAME")
     print("="*45)
     print("  Can you guess the secret number?")
 
     scores = []
 
     while True:
-        print("\n📋 MAIN MENU")
-        print("  1. 🎮 Play Game")
-        print("  2. 📊 View Scoreboard")
-        print("  3. 🚪 Exit")
+        print("\n MAIN MENU")
+        print("  1. Play Game")
+        print("  2. View Scoreboard")
+        print("  3. Exit")
 
         choice = input("\n👉 Enter 1, 2, or 3: ").strip()
 
@@ -129,10 +129,10 @@ def main():
             show_scoreboard(scores)
         elif choice == "3":
             show_scoreboard(scores)
-            print("\n👋 Thanks for playing! Keep learning Python! 🐍\n")
+            print("\nThanks for playing! Keep learning Python! 🐍\n")
             break
         else:
-            print("⚠️  Invalid choice!")
+            print("  Invalid choice!")
 
 
 # --- Entry point ---
