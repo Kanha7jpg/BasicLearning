@@ -43,6 +43,26 @@ By default, the script creates an `artifacts` folder and writes:
 - `train.csv`
 - `test.csv`
 
+## Ames-specific preprocessing and training
+
+After running the ingestion, preprocess the splits for Ames and train models:
+
+```bash
+# Preprocess the ingested splits (creates artifacts/processed/processed_*.csv)
+python preprocess_ames.py --input-dir artifacts --target-column SalePrice
+
+# Train XGBoost (falls back to sklearn if xgboost is not installed)
+python xgb_train.py --processed-dir artifacts/processed --target-column SalePrice
+
+# Train an MLP (scikit-learn)
+python mlp_train.py --processed-dir artifacts/processed --target-column SalePrice
+```
+
+Models are saved under `artifacts/` by default:
+
+- `artifacts/xgb_model.joblib`
+- `artifacts/mlp_model.joblib`
+
 ## Notes
 
 - The default target column is `SalePrice`, which works well for common house-price datasets.
