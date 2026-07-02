@@ -57,13 +57,11 @@ def preprocess(train: pd.DataFrame, test: pd.DataFrame, target_column: str) -> t
     if target_column in numeric_cols:
         numeric_cols.remove(target_column)
 
-    categorical_cols = combined.select_dtypes(include=["object", "category"]).columns.tolist()
+    categorical_cols = combined.select_dtypes(include=["object", "category", "string"]).columns.tolist()
 
     # Fill numeric missing with train medians
-    medians = {}
     for col in numeric_cols:
         med = combined.loc[: train_idx - 1, col].median()
-        medians[col] = med
         combined[col] = combined[col].fillna(med)
 
     # Fill categorical missing with a placeholder
