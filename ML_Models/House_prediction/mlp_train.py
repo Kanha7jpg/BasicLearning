@@ -1,3 +1,4 @@
+
 """Train a feedforward neural network (MLP) using scikit-learn.
 
 Uses a simple pipeline with StandardScaler and MLPRegressor.
