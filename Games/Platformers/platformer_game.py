@@ -156,7 +156,7 @@ class PlatformerGame:
         self.level_index = 0
         self.lives = PLAYER_START_LIVES
         self.score = 0
-        self.message_until = 0
+        self.message_after_id: str | None = None
         self.message_text = ""
 
         self.player_x = 0.0
@@ -236,11 +236,11 @@ class PlatformerGame:
 
     def draw_level(self) -> None:
         self.canvas.delete("level")
+        self.draw_background()
         self.platform_items = [self.create_platform(spec) for spec in self.current_level.platforms]
         self.trap_items = [self.create_trap(spec) for spec in self.current_level.traps]
         self.collectible_items = [self.create_collectible(item) for item in self.current_level.items]
         self.exit_item = self.create_exit(self.current_level.exit_door)
-        self.draw_background()
 
     def draw_background(self) -> None:
         for y in range(0, HEIGHT, 24):
@@ -315,11 +315,19 @@ class PlatformerGame:
 
     def set_message(self, text: str, duration: int = 1600) -> None:
         self.message_text = text
-        self.message_until = self.root.winfo_exists() and self.root.after(duration, self.clear_message)
+        if self.message_after_id is not None:
+            try:
+                self.root.after_cancel(self.message_after_id)
+            except tk.TclError:
+                pass
+            self.message_after_id = None
+        if duration > 0:
+            self.message_after_id = self.root.after(duration, self.clear_message)
         self.canvas.itemconfigure(self.message, text=text)
 
     def clear_message(self) -> None:
         self.message_text = ""
+        self.message_after_id = None
         self.canvas.itemconfigure(self.message, text="")
 
     def restart_current_level(self) -> None:
