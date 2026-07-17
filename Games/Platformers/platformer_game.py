@@ -11,6 +11,7 @@ Collect every gem, avoid traps, and reach the exit door to advance.
 
 from __future__ import annotations
 
+import time
 import tkinter as tk
 from dataclasses import dataclass
 from typing import Iterable
@@ -46,12 +47,19 @@ class ItemSpec:
 
 
 @dataclass(frozen=True)
+class CheckpointSpec:
+    x: int
+    y: int
+
+
+@dataclass(frozen=True)
 class LevelSpec:
     name: str
     start: tuple[int, int]
     platforms: tuple[RectSpec, ...]
     traps: tuple[RectSpec, ...]
     items: tuple[ItemSpec, ...]
+    checkpoints: tuple[CheckpointSpec, ...]
     exit_door: RectSpec
     hint: str
 
@@ -74,6 +82,10 @@ LEVELS: tuple[LevelSpec, ...] = (
             ItemSpec(200, 410),
             ItemSpec(430, 350),
             ItemSpec(670, 290),
+        ),
+        checkpoints=(
+            CheckpointSpec(200, 398),
+            CheckpointSpec(430, 338),
         ),
         exit_door=RectSpec(820, 260, 860, 320),
         hint="Collect all gems, then reach the glowing door.",
@@ -100,6 +112,10 @@ LEVELS: tuple[LevelSpec, ...] = (
             ItemSpec(330, 370),
             ItemSpec(500, 310),
             ItemSpec(700, 250),
+        ),
+        checkpoints=(
+            CheckpointSpec(330, 358),
+            CheckpointSpec(700, 238),
         ),
         exit_door=RectSpec(840, 170, 880, 230),
         hint="Use the higher platforms to bypass the spike pits.",
@@ -130,6 +146,10 @@ LEVELS: tuple[LevelSpec, ...] = (
             ItemSpec(685, 280),
             ItemSpec(640, 160),
         ),
+        checkpoints=(
+            CheckpointSpec(345, 368),
+            CheckpointSpec(640, 148),
+        ),
         exit_door=RectSpec(830, 120, 870, 180),
         hint="The last climb rewards careful jumps and timing.",
     ),
@@ -158,20 +178,25 @@ class PlatformerGame:
         self.score = 0
         self.message_after_id: str | None = None
         self.message_text = ""
+        self.game_over = False
 
         self.player_x = 0.0
         self.player_y = 0.0
         self.player_vx = 0.0
         self.player_vy = 0.0
         self.on_ground = False
+        self.invincible_until = 0.0
 
         self.platform_items: list[int] = []
         self.trap_items: list[int] = []
         self.collectible_items: list[tuple[int, int, int]] = []
+        self.checkpoint_items: list[tuple[int, int, int]] = []
         self.exit_item: int | None = None
         self.exit_unlocked = False
         self.level_complete = False
         self.current_level = LEVELS[0]
+        self.active_checkpoint = self.current_level.start
+        self.activated_checkpoint_indices: set[int] = set()
 
         self.hud = self.canvas.create_text(
             16,
@@ -221,14 +246,19 @@ class PlatformerGame:
         self.platform_items.clear()
         self.trap_items.clear()
         self.collectible_items.clear()
+        self.checkpoint_items.clear()
         self.exit_item = None
         self.exit_unlocked = False
         self.level_complete = False
+        self.game_over = False
+        self.activated_checkpoint_indices.clear()
 
         self.player_x, self.player_y = self.current_level.start
         self.player_vx = 0.0
         self.player_vy = 0.0
         self.on_ground = False
+        self.invincible_until = 0.0
+        self.active_checkpoint = self.current_level.start
 
         self.draw_level()
         self.render_player()
@@ -240,6 +270,7 @@ class PlatformerGame:
         self.platform_items = [self.create_platform(spec) for spec in self.current_level.platforms]
         self.trap_items = [self.create_trap(spec) for spec in self.current_level.traps]
         self.collectible_items = [self.create_collectible(item) for item in self.current_level.items]
+        self.checkpoint_items = [self.create_checkpoint(spec) for spec in self.current_level.checkpoints]
         self.exit_item = self.create_exit(self.current_level.exit_door)
 
     def draw_background(self) -> None:
@@ -301,6 +332,38 @@ class PlatformerGame:
         )
         return oid, spark, item.r
 
+    def create_checkpoint(self, spec: CheckpointSpec) -> tuple[int, int, int]:
+        pole = self.canvas.create_rectangle(
+            spec.x - 3,
+            spec.y - 24,
+            spec.x + 3,
+            spec.y + 18,
+            fill="#f8fafc",
+            outline="",
+            tags="level",
+        )
+        flag = self.canvas.create_polygon(
+            spec.x + 3,
+            spec.y - 22,
+            spec.x + 22,
+            spec.y - 16,
+            spec.x + 3,
+            spec.y - 8,
+            fill="#60a5fa",
+            outline="#bfdbfe",
+            width=1,
+            tags="level",
+        )
+        glow = self.canvas.create_text(
+            spec.x,
+            spec.y + 28,
+            text="checkpoint",
+            fill="#cbd5e1",
+            font=("Arial", 8, "normal"),
+            tags="level",
+        )
+        return pole, flag, glow
+
     def create_exit(self, spec: RectSpec) -> int:
         return self.canvas.create_rectangle(
             spec.x1,
@@ -331,8 +394,17 @@ class PlatformerGame:
         self.canvas.itemconfigure(self.message, text="")
 
     def restart_current_level(self) -> None:
-        self.set_message("Level restarted.", duration=1000)
+        if self.game_over:
+            self.restart_game()
+            return
         self.load_level(self.level_index)
+        self.set_message("Level restarted.", duration=1000)
+
+    def restart_game(self) -> None:
+        self.score = 0
+        self.lives = PLAYER_START_LIVES
+        self.load_level(0)
+        self.set_message("Game restarted.", duration=1000)
 
     def advance_level(self) -> None:
         if self.level_index + 1 < len(LEVELS):
@@ -344,18 +416,25 @@ class PlatformerGame:
             self.set_message("You beat every level. Press R to play again.", duration=0)
 
     def lose_life(self, reason: str) -> None:
+        if self.game_over:
+            return
         self.lives -= 1
         if self.lives <= 0:
+            self.game_over = True
             self.set_message(f"{reason} Game over. Press R to restart.", duration=0)
-            self.load_level(0)
-            self.lives = PLAYER_START_LIVES
-            self.score = 0
             return
-        self.set_message(f"{reason} Lives left: {self.lives}", duration=1200)
-        self.player_x, self.player_y = self.current_level.start
+        self.set_message(f"{reason} Respawning at checkpoint. Lives left: {self.lives}", duration=1400)
+        self.respawn_at_checkpoint()
+
+    def current_millis(self) -> int:
+        return int(time.monotonic() * 1000)
+
+    def respawn_at_checkpoint(self) -> None:
+        self.player_x, self.player_y = self.active_checkpoint
         self.player_vx = 0.0
         self.player_vy = 0.0
         self.on_ground = False
+        self.invincible_until = self.current_millis() + 1400
 
     def player_bounds(self) -> tuple[float, float, float, float]:
         return (
@@ -396,6 +475,8 @@ class PlatformerGame:
         return item_id in self.platform_items
 
     def move_player(self) -> None:
+        if self.game_over:
+            return
         if self.keys.intersection({"left", "a"}):
             self.player_vx -= MOVE_ACCEL
         if self.keys.intersection({"right", "d"}):
@@ -456,7 +537,12 @@ class PlatformerGame:
         return ax1 < bx2 and ax2 > bx1 and ay1 < by2 and ay2 > by1
 
     def handle_traps_and_items(self) -> None:
+        if self.game_over:
+            return
         player_rect = self.player_bounds()
+
+        if self.current_millis() < self.invincible_until:
+            return
 
         for trap in self.trap_items:
             if self.rectangles_overlap(player_rect, self.canvas.coords(trap)):
@@ -474,6 +560,18 @@ class PlatformerGame:
                 self.score += 25
                 self.set_message("Gem collected!", duration=700)
 
+        for index, (pole_id, flag_id, glow_id) in enumerate(self.checkpoint_items):
+            if index in self.activated_checkpoint_indices:
+                continue
+            checkpoint_bounds = self.canvas.coords(pole_id)
+            if self.rectangles_overlap(player_rect, checkpoint_bounds):
+                self.activated_checkpoint_indices.add(index)
+                checkpoint = self.current_level.checkpoints[index]
+                self.active_checkpoint = (checkpoint.x, checkpoint.y)
+                self.canvas.itemconfigure(flag_id, fill="#22c55e", outline="#dcfce7")
+                self.canvas.itemconfigure(glow_id, fill="#86efac")
+                self.set_message("Checkpoint reached.", duration=900)
+
         if remaining == 0 and not self.exit_unlocked:
             self.exit_unlocked = True
             if self.exit_item is not None:
@@ -481,7 +579,7 @@ class PlatformerGame:
             self.set_message("Exit unlocked!", duration=1000)
 
     def handle_exit(self) -> None:
-        if self.exit_item is None or not self.exit_unlocked:
+        if self.game_over or self.exit_item is None or not self.exit_unlocked:
             return
         if self.rectangles_overlap(self.player_bounds(), self.canvas.coords(self.exit_item)):
             self.advance_level()
@@ -493,9 +591,10 @@ class PlatformerGame:
             self.canvas.itemconfigure(self.exit_item, fill=fill, outline=outline)
 
     def loop(self) -> None:
-        self.move_player()
-        self.handle_traps_and_items()
-        self.handle_exit()
+        if not self.game_over:
+            self.move_player()
+            self.handle_traps_and_items()
+            self.handle_exit()
         self.update_exit_visual()
         self.render_player()
         self.update_hud()
