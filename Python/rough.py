@@ -22,3 +22,21 @@ while i * i <= r:
     i += 1
 
 print(count)
+
+# tow pointer approach
+nums = [2,4,6,10,12,14,16,18,20]
+target = 32
+length = len(nums)
+left = 0
+right = length - 1
+
+while left<right:
+    sums = nums[left]+nums[right]
+    if sums > target:
+        right-=1
+    elif sums<target:
+        left+=1
+    else:
+        return left,right
+
+
