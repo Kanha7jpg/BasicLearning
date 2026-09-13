@@ -141,3 +141,27 @@ print(fruits)       # ['banana', 'orange', 'mango']
 fruits.pop(0)
 print(fruits)       # ['orange', 'mango']
 
+
+#list 
+my_list = [10, 20, 30]
+
+# Add
+my_list.append(40)        # [10, 20, 30, 40]
+
+# Add multiple values
+my_list.extend([50, 60])  # [10, 20, 30, 40, 50, 60]
+
+# Remove by value
+my_list.remove(30)
+
+# Remove by index
+my_list.pop(1)
+
+# Clear all values
+my_list.clear()
+
+len(lst)    # Number of elements
+max(lst)    # Maximum value
+min(lst)    # Minimum value
+sum(lst)    # Sum of values
+sorted(lst) # Returns a sorted list
