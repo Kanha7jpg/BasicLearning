@@ -1,0 +1,938 @@
+
+# ==== FILE: simple_graph.ipynb CELL 1 ====
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import matplotlib.pyplot as plt
+
+# Reproducibility
+np.random.seed(42)
+torch.manual_seed(42)
+
+# Display settings
+np.set_printoptions(precision=6, suppress=True)
+
+print("NumPy version:", np.__version__)
+print("PyTorch version:", torch.__version__)
+
+# ==== FILE: simple_graph.ipynb CELL 3 ====
+# Number of nodes
+num_nodes = 5
+
+# Undirected edges
+edges = [
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (3, 4),
+    (4, 0),
+    (0, 2)
+]
+
+print("Number of nodes:", num_nodes)
+print("Edges:")
+for edge in edges:
+    print(edge)
+
+# ==== FILE: simple_graph.ipynb CELL 5 ====
+# Initialize adjacency matrix
+A = np.zeros((num_nodes, num_nodes), dtype=np.float32)
+
+# Add both directions because the graph is undirected
+for i, j in edges:
+    A[i, j] = 1
+    A[j, i] = 1
+
+print("Adjacency matrix A:")
+print(A)
+
+# ==== FILE: simple_graph.ipynb CELL 7 ====
+# Identity matrix
+I = np.eye(num_nodes, dtype=np.float32)
+
+# Add self-loops
+A_tilde = A + I
+
+print("Identity matrix I:")
+print(I)
+
+print("\nAdjacency matrix with self-loops A_tilde:")
+print(A_tilde)
+
+# ==== FILE: simple_graph.ipynb CELL 9 ====
+# Calculate node degrees
+degrees = A_tilde.sum(axis=1)
+
+# Construct diagonal degree matrix
+D_tilde = np.diag(degrees)
+
+print("Degrees:")
+print(degrees)
+
+print("\nDegree matrix D_tilde:")
+print(D_tilde)
+
+# ==== FILE: simple_graph.ipynb CELL 11 ====
+# Inverse square root of the degree values
+D_inv_sqrt_values = 1.0 / np.sqrt(degrees)
+
+# Construct diagonal matrix
+D_inv_sqrt = np.diag(D_inv_sqrt_values)
+
+print("D_tilde^(-1/2):")
+print(D_inv_sqrt)
+
+# ==== FILE: simple_graph.ipynb CELL 13 ====
+# Symmetric GCN normalization
+A_hat = D_inv_sqrt @ A_tilde @ D_inv_sqrt
+
+print("Normalized adjacency matrix A_hat:")
+print(A_hat)
+
+# Verify symmetry
+print("\nIs A_hat symmetric?")
+print(np.allclose(A_hat, A_hat.T))
+
+# ==== FILE: simple_graph.ipynb CELL 16 ====
+# Initial node features
+X = np.array([
+    [1, 0],
+    [0, 1],
+    [1, 1],
+    [0, 1],
+    [1, 0]
+], dtype=np.float32)
+
+print("Feature matrix X:")
+print(X)
+
+print("\nShape of X:", X.shape)
+
+# ==== FILE: simple_graph.ipynb CELL 18 ====
+# Number of classes
+num_classes = 2
+
+# Labels
+# The labels of nodes 1, 2 and 4 are placeholders because
+# they are not used during training.
+y = torch.tensor(
+    [0, 0, 0, 1, 0],
+    dtype=torch.long
+)
+
+# Training mask
+train_mask = torch.tensor(
+    [True, False, False, True, False]
+)
+
+print("Labels:")
+print(y)
+
+print("\nTraining mask:")
+print(train_mask)
+
+# ==== FILE: simple_graph.ipynb CELL 20 ====
+X_tensor = torch.tensor(X, dtype=torch.float32)
+A_hat_tensor = torch.tensor(A_hat, dtype=torch.float32)
+
+print("X tensor shape:", X_tensor.shape)
+print("A_hat tensor shape:", A_hat_tensor.shape)
+
+# ==== FILE: simple_graph.ipynb CELL 22 ====
+class VanillaGCN(nn.Module):
+
+    def __init__(self, input_dim, hidden_dim, output_dim):
+        super().__init__()
+
+        # First layer weights
+        self.W0 = nn.Parameter(
+            torch.empty(input_dim, hidden_dim)
+        )
+
+        # Second layer weights
+        self.W1 = nn.Parameter(
+            torch.empty(hidden_dim, output_dim)
+        )
+
+        # Xavier initialization
+        nn.init.xavier_uniform_(self.W0)
+        nn.init.xavier_uniform_(self.W1)
+
+    def forward(self, X, A_hat):
+
+        # First GCN layer
+        H1 = A_hat @ X @ self.W0
+
+        # Non-linearity
+        H1 = torch.relu(H1)
+
+        # Second GCN layer
+        Z = A_hat @ H1 @ self.W1
+
+        return H1, Z
+
+# ==== FILE: simple_graph.ipynb CELL 24 ====
+model = VanillaGCN(
+    input_dim=2,
+    hidden_dim=2,
+    output_dim=2
+)
+
+print("Initial W^(0):")
+print(model.W0.detach().numpy())
+
+print("\nInitial W^(1):")
+print(model.W1.detach().numpy())
+
+# ==== FILE: simple_graph.ipynb CELL 26 ====
+# First layer step-by-step
+
+XW0 = X_tensor @ model.W0
+
+print("X @ W^(0):")
+print(XW0.detach().numpy())
+
+A_XW0 = A_hat_tensor @ XW0
+
+print("\nA_hat @ X @ W^(0):")
+print(A_XW0.detach().numpy())
+
+H1 = torch.relu(A_XW0)
+
+print("\nH^(1) after ReLU:")
+print(H1.detach().numpy())
+
+# ==== FILE: simple_graph.ipynb CELL 28 ====
+# Second graph aggregation
+M = A_hat_tensor @ H1
+
+print("M = A_hat @ H^(1):")
+print(M.detach().numpy())
+
+# Second layer transformation
+Z = M @ model.W1
+
+print("\nZ = M @ W^(1):")
+print(Z.detach().numpy())
+
+# ==== FILE: simple_graph.ipynb CELL 30 ====
+probabilities = torch.softmax(Z, dim=1)
+
+predictions = torch.argmax(
+    probabilities,
+    dim=1
+)
+
+print("Class probabilities:")
+print(probabilities.detach().numpy())
+
+print("\nPredicted classes:")
+print(predictions.detach().numpy())
+
+# ==== FILE: simple_graph.ipynb CELL 32 ====
+criterion = nn.CrossEntropyLoss()
+
+loss = criterion(
+    Z[train_mask],
+    y[train_mask]
+)
+
+print("Training loss:", loss.item())
+
+# ==== FILE: simple_graph.ipynb CELL 34 ====
+# Clear previous gradients
+model.zero_grad()
+
+# Forward pass
+H1, Z = model(
+    X_tensor,
+    A_hat_tensor
+)
+
+# Loss on labeled nodes only
+loss = criterion(
+    Z[train_mask],
+    y[train_mask]
+)
+
+# Backpropagation
+loss.backward()
+
+print("Gradient of W^(0):")
+print(model.W0.grad)
+
+print("\nGradient of W^(1):")
+print(model.W1.grad)
+
+# ==== FILE: simple_graph.ipynb CELL 36 ====
+learning_rate = 0.01
+
+optimizer = optim.SGD(
+    model.parameters(),
+    lr=learning_rate
+)
+
+print("Learning rate:", learning_rate)
+
+# ==== FILE: simple_graph.ipynb CELL 38 ====
+num_epochs = 500
+
+loss_history = []
+
+for epoch in range(num_epochs):
+
+    # Forward propagation
+    H1, Z = model(
+        X_tensor,
+        A_hat_tensor
+    )
+
+    # Calculate loss only on labeled nodes
+    loss = criterion(
+        Z[train_mask],
+        y[train_mask]
+    )
+
+    # Clear old gradients
+    optimizer.zero_grad()
+
+    # Backpropagation
+    loss.backward()
+
+    # Update weights
+    optimizer.step()
+
+    # Store loss
+    loss_history.append(loss.item())
+
+    # Display progress
+    if (epoch + 1) % 50 == 0:
+        print(
+            f"Epoch {epoch + 1:3d} | "
+            f"Loss: {loss.item():.6f}"
+        )
+
+# ==== FILE: simple_graph.ipynb CELL 40 ====
+plt.figure(figsize=(8, 5))
+
+plt.plot(
+    range(1, num_epochs + 1),
+    loss_history
+)
+
+plt.xlabel("Epoch")
+plt.ylabel("Cross-Entropy Loss")
+plt.title("Vanilla GCN Training Loss")
+plt.grid(True)
+
+plt.show()
+
+# ==== FILE: simple_graph.ipynb CELL 42 ====
+model.eval()
+
+with torch.no_grad():
+
+    H1_final, Z_final = model(
+        X_tensor,
+        A_hat_tensor
+    )
+
+    probabilities = torch.softmax(
+        Z_final,
+        dim=1
+    )
+
+    predictions = torch.argmax(
+        probabilities,
+        dim=1
+    )
+
+print("Final logits:")
+print(Z_final.numpy())
+
+print("\nFinal class probabilities:")
+print(probabilities.numpy())
+
+print("\nFinal predicted classes:")
+print(predictions.numpy())
+
+# ==== FILE: simple_graph.ipynb CELL 44 ====
+train_predictions = predictions[train_mask]
+train_labels = y[train_mask]
+
+train_accuracy = (
+    train_predictions == train_labels
+).float().mean()
+
+print("Training predictions:", train_predictions.numpy())
+print("Training labels:", train_labels.numpy())
+print("Training accuracy:", train_accuracy.item())
+
+# ==== FILE: simple_graph.ipynb CELL 46 ====
+model.eval()
+
+with torch.no_grad():
+
+    # Explicit first-layer calculation
+    H1_check = torch.relu(
+        A_hat_tensor
+        @ X_tensor
+        @ model.W0
+    )
+
+    # Explicit second-layer calculation
+    Z_check = (
+        A_hat_tensor
+        @ H1_check
+        @ model.W1
+    )
+
+    # Maximum numerical differences
+    h1_difference = torch.max(
+        torch.abs(H1_check - H1_final)
+    ).item()
+
+    z_difference = torch.max(
+        torch.abs(Z_check - Z_final)
+    ).item()
+
+print("Maximum difference in H^(1):", h1_difference)
+print("Maximum difference in Z:", z_difference)
+
+# ==== FILE: simple_graph.ipynb CELL 50 ====
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import matplotlib.pyplot as plt
+import numpy as np
+
+from torch_geometric.datasets import Planetoid
+
+# Reproducibility
+torch.manual_seed(42)
+np.random.seed(42)
+
+print("PyTorch version:", torch.__version__)
+
+# ==== FILE: simple_graph.ipynb CELL 52 ====
+dataset = Planetoid(
+    root="data/Cora",
+    name="Cora"
+)
+
+data = dataset[0]
+
+print(dataset)
+print(data)
+
+# ==== FILE: simple_graph.ipynb CELL 54 ====
+print("Number of nodes:", data.num_nodes)
+print("Number of edge entries:", data.num_edges)
+print("Number of node features:", dataset.num_node_features)
+print("Number of classes:", dataset.num_classes)
+
+print("\nFeature matrix shape:", data.x.shape)
+print("Label vector shape:", data.y.shape)
+
+print("\nTraining nodes:", int(data.train_mask.sum()))
+print("Validation nodes:", int(data.val_mask.sum()))
+print("Test nodes:", int(data.test_mask.sum()))
+
+print("\nIs graph undirected?", data.is_undirected())
+
+# ==== FILE: simple_graph.ipynb CELL 56 ====
+N = data.num_nodes
+
+# Construct dense adjacency matrix for explicit mathematical implementation
+A = torch.zeros((N, N), dtype=torch.float32)
+
+src = data.edge_index[0]
+dst = data.edge_index[1]
+
+A[src, dst] = 1.0
+
+# Make symmetry explicit
+A = torch.maximum(A, A.T)
+
+# Add self-loops
+I = torch.eye(N)
+
+A_tilde = A + I
+
+print("A shape:", A.shape)
+print("A_tilde shape:", A_tilde.shape)
+print("Number of non-zero entries in A:", int((A != 0).sum()))
+print("Number of self-loops:", int(torch.diag(A_tilde).sum()))
+
+# ==== FILE: simple_graph.ipynb CELL 58 ====
+# Degree of every node after adding self-loops
+degrees = A_tilde.sum(dim=1)
+
+# D^(-1/2)
+D_inv_sqrt = degrees.pow(-0.5)
+
+# Construct normalized adjacency values
+edge_index = A_tilde.nonzero(as_tuple=False).T
+
+row = edge_index[0]
+col = edge_index[1]
+
+edge_weight = D_inv_sqrt[row] * D_inv_sqrt[col]
+
+A_hat = torch.sparse_coo_tensor(
+    edge_index,
+    edge_weight,
+    size=(N, N)
+).coalesce()
+
+print("Normalized adjacency shape:", A_hat.shape)
+print("Number of normalized non-zero entries:",
+      A_hat._nnz())
+
+# ==== FILE: simple_graph.ipynb CELL 60 ====
+class ThreeLayerGCN(nn.Module):
+
+    def __init__(self, input_dim, hidden_dim, output_dim):
+        super().__init__()
+
+        self.W0 = nn.Parameter(
+            torch.empty(input_dim, hidden_dim)
+        )
+
+        self.W1 = nn.Parameter(
+            torch.empty(hidden_dim, hidden_dim)
+        )
+
+        self.W2 = nn.Parameter(
+            torch.empty(hidden_dim, output_dim)
+        )
+
+        nn.init.xavier_uniform_(self.W0)
+        nn.init.xavier_uniform_(self.W1)
+        nn.init.xavier_uniform_(self.W2)
+
+    def propagate(self, A_hat, H, W):
+        return torch.sparse.mm(A_hat, H) @ W
+
+    def forward(self, X, A_hat):
+
+        H1 = self.propagate(
+            A_hat, X, self.W0
+        )
+        H1 = torch.relu(H1)
+
+        H2 = self.propagate(
+            A_hat, H1, self.W1
+        )
+        H2 = torch.relu(H2)
+
+        Z = self.propagate(
+            A_hat, H2, self.W2
+        )
+
+        return H1, H2, Z
+
+# ==== FILE: simple_graph.ipynb CELL 61 ====
+X = data.x.float()
+y = data.y.long()
+
+model = ThreeLayerGCN(
+    input_dim=dataset.num_node_features,
+    hidden_dim=64,
+    output_dim=dataset.num_classes
+)
+
+print("Input dimension:", dataset.num_node_features)
+print("Hidden dimension:", 64)
+print("Output dimension:", dataset.num_classes)
+
+# ==== FILE: simple_graph.ipynb CELL 63 ====
+with torch.no_grad():
+
+    H1, H2, Z = model(
+        X,
+        A_hat
+    )
+
+print("H^(1) shape:", H1.shape)
+print("H^(2) shape:", H2.shape)
+print("Z shape:", Z.shape)
+
+# ==== FILE: simple_graph.ipynb CELL 65 ====
+criterion = nn.CrossEntropyLoss()
+
+optimizer = optim.Adam(
+    model.parameters(),
+    lr=0.01,
+    weight_decay=5e-4
+)
+
+with torch.no_grad():
+    _, _, initial_Z = model(X, A_hat)
+
+initial_loss = criterion(
+    initial_Z[data.train_mask],
+    y[data.train_mask]
+)
+
+print("Initial training loss:", initial_loss.item())
+
+# ==== FILE: simple_graph.ipynb CELL 67 ====
+num_epochs = 300
+
+train_losses = []
+train_accuracies = []
+val_accuracies = []
+
+for epoch in range(num_epochs):
+
+    model.train()
+
+    H1, H2, Z = model(
+        X,
+        A_hat
+    )
+
+    loss = criterion(
+        Z[data.train_mask],
+        y[data.train_mask]
+    )
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    # Training accuracy
+    with torch.no_grad():
+
+        train_pred = Z.argmax(dim=1)
+
+        train_acc = (
+            train_pred[data.train_mask]
+            == y[data.train_mask]
+        ).float().mean()
+
+        val_acc = (
+            train_pred[data.val_mask]
+            == y[data.val_mask]
+        ).float().mean()
+
+    train_losses.append(loss.item())
+    train_accuracies.append(train_acc.item())
+    val_accuracies.append(val_acc.item())
+
+    if (epoch + 1) % 25 == 0:
+        print(
+            f"Epoch {epoch+1:3d} | "
+            f"Loss: {loss.item():.4f} | "
+            f"Train Acc: {train_acc.item():.4f} | "
+            f"Val Acc: {val_acc.item():.4f}"
+        )
+
+# ==== FILE: simple_graph.ipynb CELL 68 ====
+plt.figure(figsize=(8, 5))
+
+plt.plot(
+    train_losses
+)
+
+plt.xlabel("Epoch")
+plt.ylabel("Training Loss")
+plt.title("Three-Layer Vanilla GCN Training Loss")
+plt.grid(True)
+
+plt.show()
+
+# ==== FILE: simple_graph.ipynb CELL 71 ====
+def run_test(name, condition):
+    status = "PASS" if condition else "FAIL"
+    print(f"{status:4s} | {name}")
+    return condition
+
+
+# Test 1: Graph dimensions
+test1 = run_test(
+    "Graph contains 2708 nodes",
+    data.num_nodes == 2708
+)
+
+# Test 2: Feature dimensions
+test2 = run_test(
+    "Feature matrix has shape (2708, 1433)",
+    tuple(X.shape) == (2708, 1433)
+)
+
+# Test 3: Number of classes
+test3 = run_test(
+    "Number of classes is 7",
+    dataset.num_classes == 7
+)
+
+# Test 4: Normalized adjacency dimensions
+test4 = run_test(
+    "A_hat has shape (2708, 2708)",
+    tuple(A_hat.shape) == (2708, 2708)
+)
+
+# Test 5: Forward-pass dimensions
+test5 = run_test(
+    "Final logits have shape (2708, 7)",
+    tuple(Z.shape) == (2708, 7)
+)
+
+# ==== FILE: simple_graph.ipynb CELL 72 ====
+model.eval()
+
+with torch.no_grad():
+
+    H1_final, H2_final, Z_final = model(
+        X,
+        A_hat
+    )
+
+    probabilities = torch.softmax(
+        Z_final,
+        dim=1
+    )
+
+    predictions = probabilities.argmax(
+        dim=1
+    )
+
+probability_sums = probabilities.sum(dim=1)
+
+test6 = run_test(
+    "Softmax probabilities sum to 1",
+    torch.allclose(
+        probability_sums,
+        torch.ones_like(probability_sums),
+        atol=1e-5
+    )
+)
+
+print(
+    "Maximum probability-sum error:",
+    torch.max(
+        torch.abs(probability_sums - 1)
+    ).item()
+)
+
+# ==== FILE: simple_graph.ipynb CELL 73 ====
+final_loss = criterion(
+    Z_final[data.train_mask],
+    y[data.train_mask]
+).item()
+
+test7 = run_test(
+    "Final training loss is finite",
+    np.isfinite(final_loss)
+)
+
+test8 = run_test(
+    "Training loss decreased",
+    final_loss < initial_loss.item()
+)
+
+print("\nInitial loss:", initial_loss.item())
+print("Final loss:", final_loss)
+
+# ==== FILE: simple_graph.ipynb CELL 75 ====
+test_predictions = predictions[data.test_mask]
+
+test_labels = y[data.test_mask]
+
+test_accuracy = (
+    test_predictions == test_labels
+).float().mean()
+
+print("Test nodes:", int(data.test_mask.sum()))
+print("Correct predictions:",
+      int((test_predictions == test_labels).sum()))
+print("Test accuracy:",
+      test_accuracy.item())
+
+test9 = run_test(
+    "Test accuracy is a valid value",
+    0.0 <= test_accuracy.item() <= 1.0
+)
+
+# ==== FILE: simple_graph.ipynb CELL 76 ====
+results = {
+    "Initial Training Loss": initial_loss.item(),
+    "Final Training Loss": final_loss,
+    "Final Training Accuracy": train_accuracies[-1],
+    "Final Validation Accuracy": val_accuracies[-1],
+    "Test Accuracy": test_accuracy.item()
+}
+
+print("\n===== FINAL RESULTS =====")
+
+for metric, value in results.items():
+    print(f"{metric:30s}: {value:.4f}")
+
+# ==== FILE: simple_graph.ipynb CELL 78 ====
+model.eval()
+
+with torch.no_grad():
+
+    # Explicit mathematical reconstruction
+    H1_check = torch.relu(
+        torch.sparse.mm(A_hat, X) @ model.W0
+    )
+
+    H2_check = torch.relu(
+        torch.sparse.mm(A_hat, H1_check) @ model.W1
+    )
+
+    Z_check = (
+        torch.sparse.mm(A_hat, H2_check)
+        @ model.W2
+    )
+
+    difference_H1 = torch.max(
+        torch.abs(H1_check - H1_final)
+    ).item()
+
+    difference_H2 = torch.max(
+        torch.abs(H2_check - H2_final)
+    ).item()
+
+    difference_Z = torch.max(
+        torch.abs(Z_check - Z_final)
+    ).item()
+
+print("Maximum difference in H^(1):", difference_H1)
+print("Maximum difference in H^(2):", difference_H2)
+print("Maximum difference in Z:", difference_Z)
+
+test10 = run_test(
+    "Mathematical reconstruction matches model output",
+    max(
+        difference_H1,
+        difference_H2,
+        difference_Z
+    ) < 1e-6
+)
+
+# ==== FILE: cleaned_cora_3_layer_gcn.ipynb CELL 1 ====
+import torch
+import torch.nn.functional as F
+from torch_geometric.datasets import Planetoid
+from torch_geometric.nn import GCNConv
+
+torch.manual_seed(42)
+
+dataset = Planetoid(root="data/Planetoid", name="Cora")
+data = dataset[0]
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+data = data.to(device)
+print(f"Nodes: {data.num_nodes}, Features: {dataset.num_node_features}, Classes: {dataset.num_classes}")
+
+# ==== FILE: cleaned_cora_3_layer_gcn.ipynb CELL 2 ====
+class GCN(torch.nn.Module):
+    def __init__(self, in_channels, hidden_channels, out_channels):
+        super().__init__()
+        self.conv1 = GCNConv(in_channels, hidden_channels)
+        self.conv2 = GCNConv(hidden_channels, hidden_channels)
+        self.conv3 = GCNConv(hidden_channels, out_channels)
+
+    def forward(self, x, edge_index):
+        x = self.conv1(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.conv2(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=0.5, training=self.training)
+        return self.conv3(x, edge_index)
+
+
+model = GCN(dataset.num_node_features, 16, dataset.num_classes).to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+
+# ==== FILE: cleaned_cora_3_layer_gcn.ipynb CELL 3 ====
+def train():
+    model.train()
+    optimizer.zero_grad()
+    logits = model(data.x, data.edge_index)
+    loss = F.cross_entropy(logits[data.train_mask], data.y[data.train_mask])
+    loss.backward()
+    optimizer.step()
+    return loss.item()
+
+
+def classification_metrics(predictions, labels, num_classes):
+    """Return macro precision, recall, F1, and the confusion matrix."""
+    confusion = torch.zeros(
+        (num_classes, num_classes), dtype=torch.long, device=labels.device
+    )
+    indices = labels * num_classes + predictions
+    confusion.view(-1).scatter_add_(
+        0, indices, torch.ones_like(indices, dtype=torch.long)
+    )
+
+    true_positive = confusion.diag().float()
+    predicted = confusion.sum(dim=0).float()
+    actual = confusion.sum(dim=1).float()
+    precision_per_class = torch.nan_to_num(true_positive / predicted)
+    recall_per_class = torch.nan_to_num(true_positive / actual)
+    f1_per_class = torch.nan_to_num(
+        2 * precision_per_class * recall_per_class
+        / (precision_per_class + recall_per_class)
+    )
+    return (
+        precision_per_class.mean().item(),
+        recall_per_class.mean().item(),
+        f1_per_class.mean().item(),
+        confusion.cpu(),
+    )
+
+
+@torch.no_grad()
+def test():
+    model.eval()
+    logits = model(data.x, data.edge_index)
+    predictions = logits.argmax(dim=1)
+    results = []
+    for mask in (data.train_mask, data.val_mask, data.test_mask):
+        labels = data.y[mask]
+        masked_predictions = predictions[mask]
+        accuracy = (masked_predictions == labels).float().mean().item()
+        precision, recall, f1, confusion = classification_metrics(
+            masked_predictions, labels, dataset.num_classes
+        )
+        results.append({
+            "accuracy": accuracy,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "confusion": confusion,
+        })
+    return results
+
+
+for epoch in range(1, 201):
+    loss = train()
+    if epoch == 1 or epoch % 20 == 0:
+        train_metrics, val_metrics, test_metrics = test()
+        print(
+            f"Epoch {epoch:03d} | Loss {loss:.4f} | "
+            f"Train accuracy {train_metrics['accuracy']:.4f} | "
+            f"Val accuracy {val_metrics['accuracy']:.4f} | "
+            f"Test accuracy {test_metrics['accuracy']:.4f}"
+        )
+
+train_metrics, val_metrics, test_metrics = test()
+for split_name, metrics in (
+    ("Train", train_metrics),
+    ("Validation", val_metrics),
+    ("Test", test_metrics),
+):
+    print(
+        f"{split_name}: accuracy={metrics['accuracy']:.4f}, "
+        f"precision_macro={metrics['precision']:.4f}, "
+        f"recall_macro={metrics['recall']:.4f}, "
+        f"f1_macro={metrics['f1']:.4f}"
+    )
+    print(f"{split_name} confusion matrix:\n{metrics['confusion']}")
