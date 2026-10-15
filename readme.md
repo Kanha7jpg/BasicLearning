@@ -1,23 +1,57 @@
-# Read me
+# BasicLearning
 
-This is my learning playground.
+> **A small playground for big ideas.**
 
-## What is inside
+Welcome to my hands-on learning lab! This repository is a collection of experiments,
+mini-projects, games, algorithms, and machine-learning models built while learning by
+doing. Some projects are simple, some are ambitious, and all of them are a chance to
+turn curiosity into code.
 
-- Games: fun game projects
-- Java: small Java programs
-- Python: beginner Python programs
-- ML_Models: machine learning projects
+## Explore the lab
 
-## How to use this repo
+| Area | What you will find |
+| --- | --- |
+| [`Python/`](Python/) | Beginner programs, utilities, puzzles, and search algorithms |
+| [`Java/`](Java/) | Small programs covering core Java concepts |
+| [`Games/`](Games/) | Playable projects including Snake, Connect 4, platformers, and more |
+| [`ML_Models/`](ML_Models/) | Machine-learning experiments, notebooks, analyses, and computer-vision projects |
 
-1. Open this folder in VS Code.
-2. Pick any project folder.
-3. Read the README in that folder.
-4. Run the code using the steps there.
+## Choose your next adventure
 
-## Good first projects
+### Start simple
 
-- Python/calculator.py
-- Games/Snake_Game/snake.py
-- ML_Models/Handwritten_Digit_Recognition/handwritten_digit_recognition.py
+- [`Python/calculator.py`](Python/calculator.py) — a friendly first Python project
+- [`Python/guessnumber.py`](Python/guessnumber.py) — practice logic with a guessing game
+- [`Java/NumberStats.java`](Java/NumberStats.java) — explore basic Java programming
+
+### Build something fun
+
+- [`Games/Snake_Game/snake.py`](Games/Snake_Game/snake.py) — classic Snake in Python
+- [`Games/Platformers/`](Games/Platformers/) — jump into a platformer project
+- [`Games/Space_invaders/`](Games/Space_invaders/) — defend the galaxy with Java
+
+### Try machine learning
+
+- [`ML_Models/Handwritten_Digit_Recognition/`](ML_Models/Handwritten_Digit_Recognition/) — recognize handwritten digits
+- [`ML_Models/Object_detector/`](ML_Models/Object_detector/) — experiment with object detection
+- [`ML_Models/IPL_Analysis/`](ML_Models/IPL_Analysis/) — explore cricket data and predictions
+
+## How to use this repository
+
+1. Clone the repository and open it in VS Code.
+2. Pick a project that matches your interests.
+3. Read that project’s README for setup and run instructions.
+4. Experiment, improve the code, and make it your own.
+
+> **Tip:** Machine-learning projects may have their own `requirements.txt` files.
+> Install dependencies from the relevant project folder rather than installing
+> everything at once.
+
+## Learning loop
+
+```text
+Explore  ->  Understand  ->  Modify  ->  Break things  ->  Learn  ->  Build again
+```
+
+This repository is a work in progress. New ideas, refactors, and experiments are
+always welcome.
